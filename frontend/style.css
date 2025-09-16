@@ -1,0 +1,46 @@
+body {
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    color: #333;
+    text-align: center;
+    padding: 1em;
+}
+
+h1 {
+    color: #111;
+}
+
+#controls {
+    margin-bottom: 1em;
+}
+
+button {
+    padding: 0.5em 1em;
+    font-size: 1em;
+    cursor: pointer;
+}
+
+#main-content {
+    display: flex;
+    justify-content: center;
+    gap: 2em;
+    margin-bottom: 1em;
+}
+
+.artwork-container {
+    border: 1px solid #ccc;
+    padding: 1em;
+    background-color: #fff;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+img {
+    width: 256px;
+    height: 256px;
+    border: 1px solid #ddd;
+}
+
+#stats {
+    display: inline-block;
+    text-align: left;
+}
