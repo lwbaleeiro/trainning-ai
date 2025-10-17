@@ -1,6 +1,10 @@
 
 # Projeto: Exército de Insetos - Aprendendo a Navegar em Labirintos
 
+```bash
+  python -m uvicorn main:app --host 0.0.0.0 --port 8002
+```
+
 ## 1. Visão Geral
 
 O objetivo deste projeto é treinar uma população de agentes ("insetos") para encontrar a saída de um labirinto 2D. Cada inseto é controlado por uma rede neural que interpreta dados de sensores de proximidade para decidir sua movimentação. Através de um algoritmo genético, os insetos mais bem-sucedidos em explorar o labirinto e se aproximar da saída passam seus "genes" (pesos da rede neural) para a próxima geração, resultando em uma evolução de estratégias de navegação.
