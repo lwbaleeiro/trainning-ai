@@ -1,0 +1,72 @@
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #222;
+    color: #eee;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    overflow: hidden;
+}
+
+.container {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 300px;
+    background-color: #333;
+    padding: 20px;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.controls {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background 0.2s;
+}
+
+#startBtn { background-color: #4CAF50; color: white; }
+#pauseBtn { background-color: #FF9800; color: white; }
+#resetBtn { background-color: #f44336; color: white; }
+
+button:hover { opacity: 0.9; }
+
+.stats p {
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
+#canvas-container {
+    flex-grow: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #111;
+}
+
+.agent-details {
+    background-color: #444;
+    padding: 10px;
+    border-radius: 5px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+#brainViz {
+    margin-top: 10px;
+    width: 100%;
+    height: 200px;
+    background: #222;
+    border-radius: 3px;
+}
