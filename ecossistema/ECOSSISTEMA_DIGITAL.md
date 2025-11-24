@@ -1,6 +1,28 @@
 
 # Projeto: Ecossistema Digital - A Co-evolução de Predadores e Presas
 
+```
+Prerequisites
+Ensure you have the following installed:
+
+- Python 3.8+
+- pip (Python package manager)
+- Installation
+
+Navigate to the project directory:
+  cd e:\Code\Personal\trainning-ai\ecossistema
+
+Install dependencies:
+  pip install fastapi uvicorn numpy
+
+
+Start the backend server:
+  python -m uvicorn backend.main:app --reload --port 8000
+
+Open your web browser and navigate to:
+  http://localhost:8000
+```
+
 ## 1. Visão Geral
 
 Este projeto simula um ecossistema 2D onde duas populações de agentes, Predadores e Presas, co-evoluem. Ambas as populações são controladas por redes neurais individuais e seu "código genético" (os pesos da rede neural) é aprimorado a cada geração através de um algoritmo genético. O objetivo é observar o surgimento de comportamentos complexos de caça e fuga.

@@ -155,6 +155,8 @@ class Predator(Agent):
         self.fitness = 0
         self.prey_eaten = 0
         self.radius = 15
+        self.distance_since_meal = 0
+        self.max_starvation_distance = 2000
 
     def think(self, closest_prey):
         inputs = []
@@ -174,7 +176,39 @@ class Predator(Agent):
         force = np.array([outputs[0], outputs[1]])
         self.apply_force(force * self.max_force)
 
+    def update(self, width, height):
+        if not self.alive:
+            return
+
+        # Calculate distance moved in this step
+        # We need to do this before updating position, but velocity is updated inside super().update()
+        # Actually, super().update() updates velocity then position.
+        # Let's calculate distance based on velocity *before* it's reset? 
+        # No, super().update() does: velocity += accel; position += velocity; accel *= 0
+        # So effective movement is `velocity` (after accel applied).
+        
+        # Let's call super update first, but we need to know the velocity used.
+        # super().update() modifies velocity.
+        
+        # Let's just calculate distance based on the velocity that WILL be applied.
+        # But super().update() also limits speed.
+        
+        # Easier way: Store old position, call update, calc distance.
+        old_pos = self.position.copy()
+        super().update(width, height)
+        
+        # Calculate distance moved (handling wrap-around is tricky if we just check distance)
+        # If wrapped around, distance might be huge.
+        # Let's just use the speed (magnitude of velocity) as the distance traveled, 
+        # since that's what was added to position (ignoring wrap-around jump).
+        speed = np.linalg.norm(self.velocity)
+        self.distance_since_meal += speed
+        
+        if self.distance_since_meal > self.max_starvation_distance:
+            self.alive = False
+
     def eat(self):
         self.energy += 50
         self.prey_eaten += 1
         self.fitness += 20
+        self.distance_since_meal = 0
