@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Verlet Cloth Simulation</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #1a1a1a; }
+        canvas { display: block; border: 1px solid #333; }
+    </style>
+</head>
+<body>
+    <canvas id="clothCanvas"></canvas>
+    <script>
+        // --- Configuration ---
+        const WIDTH = 600;
+        const HEIGHT = 400;
+        const DENSITY = 10; // Pixels per constraint length (lower is denser)
+        const CONSTRAINT_ITERATIONS = 4; // Higher is stiffer and more stable
+        const DAMPING = 0.99; // Velocity damping factor
+        const GRAVITY = 0.5; // Gravity acceleration
+        
+        // Cloth dimensions
+        const CLOTH_COLS = 30;
+        const CLOTH_ROWS = 20;
+
+        // Canvas Setup
+        const canvas = document.getElementById('clothCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = WIDTH;
+        canvas.height = HEIGHT;
+
+        // --- Core Data Structures ---
+
+        /** Represents a single particle in the cloth grid. */
+        class Particle {
+            constructor(x, y, isFixed = false) {
+                this.x = x;
+                this.y = y;
+                this.old_x = x; // For Verlet integration
+                this.old_y = y;
+                this.isFixed = isFixed; // Pinned point
+                this.mass = 1;
+            }
+        }
+
+        /** Represents a structural constraint between two particles. */
+        class Constraint {
+            constructor(p1, p2) {
+                this.p1 = p1;
+                this.p2 = p2;
+                // Calculate the resting distance between the two particles
+                const dx = p1.x - p2.x;
+                const dy = p1.y - p2.y;
+                this.length = Math.sqrt(dx * dx + dy * dy);
+            }
+
+            // Solves the constraint by moving the particles to maintain the resting length.
+            solve() {
+                const dx = this.p1.x - this.p2.x;
+                const dy = this.p1.y - this.p2.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const diff = (this.length - dist) / dist;
+
+                // How much to move the particles (half the difference)
+                const correctionX = dx * diff * 0.5;
+                const correctionY = dy * diff * 0.5;
+
+                // Move p1
+                if (!this.p1.isFixed) {
+                    this.p1.x += correctionX;
+                    this.p1.y += correctionY;
+                }
+                
+                // Move p2
+                if (!this.p2.isFixed) {
+                    this.p2.x -= correctionX;
+                    this.p2.y -= correctionY;
+                }
+            }
+        }
+
+        let particles = [];
+        let constraints = [];
+        let mouse = { x: 0, y: 0, isDown: false, draggedParticle: null, tearDist: 20 };
+        
+        // --- Initialization ---
+
+        function initCloth() {
+            // 1. Create Particles
+            for (let j = 0; j < CLOTH_ROWS; j++) {
+                for (let i = 0; i < CLOTH_COLS; i++) {
+                    const x = i * DENSITY + (WIDTH - CLOTH_COLS * DENSITY) / 2;
+                    const y = j * DENSITY + 10;
+                    
+                    // Pin the top row
+                    const isFixed = (j === 0 && (i === 0 || i === CLOTH_COLS - 1));
+                    
+                    particles.push(new Particle(x, y, isFixed));
+                }
+            }
+
+            // 2. Create Constraints (Structural: Horizontal and Vertical)
+            for (let j = 0; j < CLOTH_ROWS; j++) {
+                for (let i = 0; i < CLOTH_COLS; i++) {
+                    const idx = j * CLOTH_COLS + i;
+                    const p = particles[idx];
+
+                    // Connect to the right particle
+                    if (i < CLOTH_COLS - 1) {
+                        const rightP = particles[idx + 1];
+                        constraints.push(new Constraint(p, rightP));
+                    }
+
+                    // Connect to the particle below
+                    if (j < CLOTH_ROWS - 1) {
+                        const bottomP = particles[idx + CLOTH_COLS];
+                        constraints.push(new Constraint(p, bottomP));
+                    }
+                }
+            }
+        }
+
+        // --- Physics Loop ---
+
+        function updatePhysics() {
+            // 1. Verlet Integration (Apply gravity and update positions)
+            for (const p of particles) {
+                if (p.isFixed) continue;
+
+                const vx = (p.x - p.old_x) * DAMPING; // Apply damping
+                const vy = (p.y - p.old_y) * DAMPING;
+
+                // Save current position for next iteration
+                p.old_x = p.x;
+                p.old_y = p.y;
+
+                // New position = Old position + Velocity + Acceleration (Gravity)
+                p.x += vx;
+                p.y += vy + GRAVITY; // Add gravity
+            }
+
+            // 2. Constraint Solving (Iteratively enforce the constraints)
+            for (let i = 0; i < CONSTRAINT_ITERATIONS; i++) {
+                for (const c of constraints) {
+                    c.solve();
+                }
+            }
+
+            // 3. Environment/Boundary Constraints
+            for (const p of particles) {
+                // Keep particles within the canvas bounds
+                if (p.x < 0) p.x = 0;
+                else if (p.x > WIDTH) p.x = WIDTH;
+                
+                if (p.y > HEIGHT) p.y = HEIGHT;
+                else if (p.y < 0) p.y = 0;
+            }
+
+            // 4. Mouse Interaction (Drag/Tear)
+            handleMouseInteraction();
+        }
+        
+        function handleMouseInteraction() {
+            if (mouse.isDown) {
+                // Dragging a particle
+                if (mouse.draggedParticle) {
+                    mouse.draggedParticle.x = mouse.x;
+                    mouse.draggedParticle.y = mouse.y;
+                    mouse.draggedParticle.old_x = mouse.x; // Set old pos to current to prevent velocity
+                    mouse.draggedParticle.old_y = mouse.y;
+                } 
+                
+                // Tearing check (Remove constraints near the mouse)
+                let i = constraints.length;
+                while (i--) {
+                    const c = constraints[i];
+                    // Check distance from mouse to the constraint's midpoint
+                    const midX = (c.p1.x + c.p2.x) / 2;
+                    const midY = (c.p1.y + c.p2.y) / 2;
+                    
+                    const dx = midX - mouse.x;
+                    const dy = midY - mouse.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (dist < mouse.tearDist) {
+                        // Remove the constraint to 'tear' the cloth
+                        constraints.splice(i, 1);
+                    }
+                }
+            }
+        }
+
+        // --- Rendering ---
+
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Draw Constraints (The 'cloth' lines)
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            for (const c of constraints) {
+                ctx.moveTo(c.p1.x, c.p1.y);
+                ctx.lineTo(c.p2.x, c.p2.y);
+            }
+            ctx.stroke();
+
+            // Draw Particles (Optional: for debugging or visual interest)
+            // ctx.fillStyle = '#ff6666';
+            // for (const p of particles) {
+            //     ctx.beginPath();
+            //     ctx.arc(p.x, p.y, p.isFixed ? 3 : 1.5, 0, 2 * Math.PI);
+            //     ctx.fill();
+            // }
+
+            // Draw highlight for dragged particle
+            if (mouse.draggedParticle) {
+                ctx.fillStyle = '#66ff66';
+                ctx.beginPath();
+                ctx.arc(mouse.draggedParticle.x, mouse.draggedParticle.y, 4, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // --- Main Animation Loop ---
+
+        function loop() {
+            updatePhysics();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // --- Mouse Event Handlers ---
+
+        function getMousePos(event) {
+            const rect = canvas.getBoundingClientRect();
+            mouse.x = event.clientX - rect.left;
+            mouse.y = event.clientY - rect.top;
+        }
+
+        canvas.addEventListener('mousedown', (event) => {
+            getMousePos(event);
+            mouse.isDown = true;
+            
+            // Try to find a particle to drag
+            let nearestParticle = null;
+            let minSqDist = Infinity;
+            
+            for (const p of particles) {
+                const dx = p.x - mouse.x;
+                const dy = p.y - mouse.y;
+                const sqDist = dx * dx + dy * dy;
+
+                if (sqDist < 100 && sqDist < minSqDist) { // Check within 10px radius
+                    minSqDist = sqDist;
+                    nearestParticle = p;
+                }
+            }
+
+            if (nearestParticle) {
+                mouse.draggedParticle = nearestParticle;
+                // Temporarily unfix a particle if it was pinned, allowing it to be dragged
+                if (nearestParticle.isFixed) nearestParticle.tempFixed = true;
+                nearestParticle.isFixed = false;
+            }
+        });
+
+        canvas.addEventListener('mousemove', getMousePos);
+
+        canvas.addEventListener('mouseup', () => {
+            mouse.isDown = false;
+            if (mouse.draggedParticle) {
+                // Restore the 'fixed' status if it was temporarily fixed
+                if (mouse.draggedParticle.tempFixed) {
+                    mouse.draggedParticle.isFixed = true;
+                    mouse.draggedParticle.tempFixed = false;
+                }
+                mouse.draggedParticle = null;
+            }
+        });
+        
+        // --- Start Simulation ---
+        initCloth();
+        loop();
+
+    </script>
+</body>
+</html>

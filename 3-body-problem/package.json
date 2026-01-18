@@ -1,0 +1,30 @@
+{
+  "name": "three-body-simulator",
+  "version": "2.0.0",
+  "description": "Simulador do Problema de Tres Corpos - Web Interativo",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "simulate": "ts-node src/index.ts",
+    "web": "npx serve web -p 3000",
+    "web:open": "npx serve web -p 3000 --open"
+  },
+  "keywords": [
+    "physics",
+    "simulation",
+    "three-body-problem",
+    "gravity",
+    "n-body",
+    "astronomy"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "serve": "^14.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  }
+}

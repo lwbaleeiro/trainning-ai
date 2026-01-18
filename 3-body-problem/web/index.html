@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador do Problema de Três Corpos</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="header">
+      <h1>Problema de Três Corpos</h1>
+      <p class="subtitle">Simulador Gravitacional Interativo</p>
+    </header>
+
+    <div class="main-content">
+      <!-- Canvas de Simulação -->
+      <div class="simulation-area">
+        <canvas id="simulation-canvas"></canvas>
+        
+        <!-- Info overlay -->
+        <div class="simulation-info">
+          <div class="info-item">
+            <span class="info-label">Tempo:</span>
+            <span id="time-display">0 dias</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Energia:</span>
+            <span id="energy-display">0 J</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">FPS:</span>
+            <span id="fps-display">0</span>
+          </div>
+        </div>
+
+        <!-- Controles de simulação -->
+        <div class="simulation-controls">
+          <button id="btn-play" class="btn btn-primary" title="Iniciar/Pausar">
+            <span class="icon">▶</span>
+          </button>
+          <button id="btn-reset" class="btn btn-secondary" title="Reiniciar">
+            <span class="icon">↺</span>
+          </button>
+          <button id="btn-center" class="btn btn-secondary" title="Centralizar">
+            <span class="icon">⊙</span>
+          </button>
+          <div class="speed-control">
+            <label>Velocidade:</label>
+            <input type="range" id="speed-slider" min="1" max="100" value="20">
+            <span id="speed-display">20x</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Painel de Controles -->
+      <aside class="control-panel">
+        <!-- Seleção de Cenário -->
+        <section class="panel-section">
+          <h3>Cenário</h3>
+          <select id="scenario-select" class="form-control">
+            <option value="trisolaris">Sistema Trisolaris</option>
+            <option value="figura-8">Figura-8 (Órbita Estável)</option>
+            <option value="sistema-solar">Sistema Solar</option>
+            <option value="binario">Sistema Binário</option>
+            <option value="caotico">Sistema Caótico</option>
+            <option value="lagrange">Pontos de Lagrange</option>
+            <option value="custom">Personalizado</option>
+          </select>
+          <p id="scenario-description" class="scenario-desc"></p>
+        </section>
+
+        <!-- Configurações da Simulação -->
+        <section class="panel-section">
+          <h3>Simulação</h3>
+          <div class="form-group">
+            <label for="time-step">Passo de tempo (horas)</label>
+            <input type="number" id="time-step" class="form-control" value="6" min="0.1" max="24" step="0.1">
+          </div>
+          <div class="form-group">
+            <label for="integration-method">Método de Integração</label>
+            <select id="integration-method" class="form-control">
+              <option value="rk4">Runge-Kutta 4 (Preciso)</option>
+              <option value="verlet">Velocity Verlet</option>
+              <option value="euler">Euler (Rápido)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="show-trails" checked>
+              Mostrar trilhas
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="trail-length">Comprimento das trilhas</label>
+            <input type="range" id="trail-length" min="50" max="500" value="200">
+          </div>
+        </section>
+
+        <!-- Corpos Celestes -->
+        <section class="panel-section">
+          <h3>Corpos Celestes</h3>
+          <div id="bodies-container">
+            <!-- Corpos serão adicionados dinamicamente -->
+          </div>
+          <button id="btn-add-body" class="btn btn-small btn-secondary">+ Adicionar Corpo</button>
+        </section>
+
+        <!-- Visualização -->
+        <section class="panel-section">
+          <h3>Visualização</h3>
+          <div class="form-group">
+            <label for="zoom-level">Zoom</label>
+            <input type="range" id="zoom-level" min="0.1" max="5" value="1" step="0.1">
+            <span id="zoom-display">1.0x</span>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="show-vectors" >
+              Mostrar vetores de velocidade
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="show-grid">
+              Mostrar grade
+            </label>
+          </div>
+          <div class="form-group">
+            <label>
+              <input type="checkbox" id="follow-center-mass">
+              Seguir centro de massa
+            </label>
+          </div>
+        </section>
+
+        <!-- Estatísticas -->
+        <section class="panel-section">
+          <h3>Estatísticas</h3>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Energia Cinética</span>
+              <span id="kinetic-energy" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Energia Potencial</span>
+              <span id="potential-energy" class="stat-value">0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Desvio de Energia</span>
+              <span id="energy-drift" class="stat-value">0%</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Passos</span>
+              <span id="step-count" class="stat-value">0</span>
+            </div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Modal para edição de corpo -->
+  <div id="body-modal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Editar Corpo Celeste</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="body-name">Nome</label>
+          <input type="text" id="body-name" class="form-control">
+        </div>
+        <div class="form-group">
+          <label for="body-mass">Massa (massas solares)</label>
+          <input type="number" id="body-mass" class="form-control" step="0.01" min="0.0001">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Posição X (AU)</label>
+            <input type="number" id="body-pos-x" class="form-control" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Posição Y (AU)</label>
+            <input type="number" id="body-pos-y" class="form-control" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Posição Z (AU)</label>
+            <input type="number" id="body-pos-z" class="form-control" step="0.1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Velocidade X (km/s)</label>
+            <input type="number" id="body-vel-x" class="form-control" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Velocidade Y (km/s)</label>
+            <input type="number" id="body-vel-y" class="form-control" step="0.1">
+          </div>
+          <div class="form-group">
+            <label>Velocidade Z (km/s)</label>
+            <input type="number" id="body-vel-z" class="form-control" step="0.1">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="body-color">Cor</label>
+          <input type="color" id="body-color" class="form-control-color">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-delete-body" class="btn btn-danger">Excluir</button>
+        <button id="btn-save-body" class="btn btn-primary">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>
